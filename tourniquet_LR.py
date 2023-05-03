@@ -38,15 +38,14 @@ numeric_columns = ['min', 'seconds', 'beep_count', 'beep_gate']
 
 cat_columns = ['gate_id', 'weekday',
                'hour',
-               # 'is_weekend',
-               # '1day', '2day', 'last_day-1', 'last_day',
-               # 'DofY1'
+               # 'is_weekend', '1day', '2day', 'last_day-1', 'last_day',
                ]
 
 data_cls = DataTransform(category_columns=cat_columns, drop_first=False,
                          # numeric_columns=numeric_columns, scaler=StandardScaler,
                          )
 
+# prefix_preprocess = ''
 # prefix_preprocess = '_min_0'
 # prefix_preprocess = '_fp'
 # prefix_preprocess = '_fp2'
@@ -112,7 +111,7 @@ test_sizes = (0.2,)
 # test_sizes = (0.2, 0.25)
 # test_sizes = np.linspace(0.15, 0.25, 11)
 for test_size in test_sizes:
-# for iters in range(50, 201, 10):
+    # for iters in range(50, 201, 10):
     max_num += 1
     test_size = 0.2
     SEED = 17
@@ -120,10 +119,15 @@ for test_size in test_sizes:
 
     print(f'test_size: {test_size}')
     # Split the train_df into training and testing sets
-    X_train, X_valid, y_train, y_valid = train_test_split(train, target,
-                                                          test_size=test_size,
-                                                          stratify=target,
-                                                          random_state=SEED)
+    # X_train, X_valid, y_train, y_valid = train_test_split(train, target,
+    #                                                       test_size=test_size,
+    #                                                       stratify=target,
+    #                                                       random_state=SEED)
+
+    X_train, X_valid, y_train, y_valid = data_cls.train_valid_split(train_df,
+                                                                    test_size=test_size,
+                                                                    SEED=SEED,
+                                                                    drop_outlets=False)
 
     # # самодельный train_test_split
     # X_train, X_valid, y_train, y_valid = data.train_test_split(train, target)
