@@ -20,6 +20,10 @@ PREDICTIONS_DIR = Path(r'D:\python-txt\tourniquet\predictions')
 
 
 def get_max_num(file_logs=None):
+    """Получение максимального номера итерации обучения моделей
+    :param file_logs: имя лог-файла с полным путем
+    :return: максимальный номер
+    """
     if file_logs is None:
         file_logs = Path(r'D:\python-txt\tourniquet\scores_local.logs')
 
@@ -46,6 +50,13 @@ def get_max_num(file_logs=None):
 
 
 def predict_train_valid(model, datasets, label_enc=None):
+    """Расчет метрик для модели: accuracy на трейне, на валидации, на всем трейне, roc_auc
+    и взвешенная F1-мера на валидации
+    :param model: обученная модель
+    :param datasets: кортеж с тренировочной, валидационной и полной выборками
+    :param label_enc: используемый label_encоder для target'а
+    :return: accuracy на трейне, на валидации, на всем трейне, roc_auc и взвешенная F1-мера
+    """
     X_train, X_valid, y_train, y_valid, train, target, test_df = datasets
     valid_pred = model.predict(X_valid)
     train_pred = model.predict(X_train)
@@ -78,6 +89,18 @@ def predict_train_valid(model, datasets, label_enc=None):
 
 def predict_test(idx_fold, model, datasets, max_num=0, submit_prefix='lg_', label_enc=None,
                  save_predict_proba=True):
+    """Предсказание для тестового датасета.
+    Расчет метрик для модели: accuracy на трейне, на валидации, на всем трейне, roc_auc
+    и взвешенная F1-мера на валидации
+    :param idx_fold: номер фолда при обучении
+    :param model: обученная модель
+    :param datasets: кортеж с тренировочной, валидационной и полной выборками
+    :param max_num: максимальный порядковый номер обучения моделей
+    :param submit_prefix: префикс для файла сабмита для каждой модели свой
+    :param label_enc: используемый label_encоder для target'а
+    :param save_predict_proba: сохранять файл с вероятностями предсказаний
+    :return: accuracy на трейне, на валидации, на всем трейне, roc_auc и взвешенная F1-мера
+    """
     X_train, X_valid, y_train, y_valid, train, target, test_df = datasets
     # постфикс если было обучение на отдельных фолдах
     nfld = f'_{idx_fold}' if idx_fold else ''
@@ -106,7 +129,7 @@ def predict_test(idx_fold, model, datasets, max_num=0, submit_prefix='lg_', labe
     file_proba_csv = PREDICTIONS_DIR.joinpath(submit_csv.replace('submit_', 'proba_'))
     file_train_csv = PREDICTIONS_DIR.joinpath(submit_csv.replace('submit_', 'train_'))
 
-    # Write the predictions to a file
+    # Сохранение предсказаний в файл
     submit = test_df[test_df.columns.to_list()[5:7]]
     submit['target'] = predictions
     submit[['target']].to_csv(file_submit_csv)
@@ -130,10 +153,8 @@ def predict_test(idx_fold, model, datasets, max_num=0, submit_prefix='lg_', labe
 
     acc_train, acc_valid, acc_full, roc_auc, f1w = predict_train_valid(model, datasets,
                                                                        label_enc=label_enc)
-
     print(f'Accuracy = {acc_valid:.6f}')
     print(f'Weighted F1-score = {f1w:.6f}')
-
     print(f'Accuracy train:{acc_train} valid:{acc_valid} full:{acc_full} roc_auc:{roc_auc}')
     return acc_train, acc_valid, acc_full, roc_auc, f1w
 
@@ -148,8 +169,7 @@ class DataTransform:
         :param category_columns: категориальные колонки
         :param drop_first: из dummy переменных удалить первую колонку
         :param scaler: какой скайлер будем использовать
-        :param degree: аргументы для скайлера,
-        например: степень для полиномиального преобразования
+        :param degree: аргументы для скайлера, например: степень для полином.преобразования
         """
         self.use_catboost = use_catboost
         self.category_columns = [] if category_columns is None else category_columns
@@ -374,10 +394,10 @@ class DataTransform:
             prev_key = prev_cnt = None
             find_gates_mask = []
             for key, cnt in sorted(res_cnt.items()):
-                # количество шаблонов 1 или 2 - игнорируем,
-                # количество шаблонов 3 и 4 берем только длиной 3 и 4,
-                # количество шаблонов 5 берем длины 3, 4 и 5,
-                # количество шаблонов 6 и более берем все
+                # количество проходов по шаблону 1 или 2 - игнорируем,
+                # количество проходов по шаблону 3 и 4 берем только шаблоны длиной 3 и 4,
+                # количество проходов по шаблону = 5 берем длины 3, 4 и 5,
+                # количество проходов по шаблону = 6 и более берем длины 4, 5 и 6
                 if (cnt in (3, 4) and len(key) in (3, 4)) or (cnt == 5 and len(key) < 6) or (
                         cnt > 5 and len(key) < cnt):
                     # убираем дубли когда след шаблон отличается на последним турникетом
@@ -413,7 +433,6 @@ class DataTransform:
         :param replace_gates_mask: заменить атрибут self.gates_mask
         :return: список паттернов с временными интервалами
         """
-
         # диапазон границ интервалов расширим вниз на 50% и вверх 20% - это сработало лучше,
         # чем расширение границ вниз и вверх на 5%
         def make_min_max(col):
@@ -442,6 +461,13 @@ class DataTransform:
 
     @staticmethod
     def find_gates(row, mask, times=None):
+        """
+        Поиск паттернов по шаблонам
+        :param row: строка датафрейма
+        :param mask: шаблон
+        :param times: временные границы прохода через турникеты шаблона
+        :return: True / False --> найден паттерн по шаблону или нет
+        """
         shift_gates = [f'g{i}' for i in range(len(mask) - 1, -len(mask), -1)]
         gates = row[shift_gates].values
         gates_times = None
@@ -467,7 +493,7 @@ class DataTransform:
 
     def fit(self, df, file_df=None, out_five_percent=False, remake_gates_mask=False):
         """
-        Формирование фич
+        Формирование фич --> очень временнозатратная операция ~1.5 часа
         :param df: исходный ФД
         :param file_df: Предобработанный Файл .pkl с полным путём
         :param out_five_percent: граница 5% при определении выбросов
@@ -547,7 +573,7 @@ class DataTransform:
 
     def transform(self, df, model_columns=None):
         """
-        Формирование фич
+        Формирование остальных фич
         :param df: ДФ
         :param model_columns: список колонок, которые будут использованы в модели
         :return: ДФ с фичами
@@ -692,12 +718,12 @@ class DataTransform:
         return x_train, x_valid, y_train, y_valid
 
     @staticmethod
-    def make_sample(df, days=7):
+    def make_sample(df, days=5):
         """
         Для опытов оставим небольшой сэмпл из данных и виде первых дней days
         :param df: ДФ
         :param days: количество дней для обучения и +1 день для теста, чтобы код не падал
-        :return: ДФ сеэмпла данных
+        :return: ДФ сэмпла данных
         """
         dates = sorted(df['date'].unique())[:days + 1]
         temp = df[df['date'].isin(dates)]
@@ -706,7 +732,7 @@ class DataTransform:
 
     def train_valid_split(self, df, test_size=0.2, SEED=17, drop_outlets=False):
         """
-        Деление на обучающую и валидационную выборки
+        Деление на обучающую и валидационную выборки штатным train_test_split
         :param df: ДФ
         :param test_size: test_size
         :param SEED: SEED
@@ -723,11 +749,11 @@ class DataTransform:
                                                               random_state=SEED)
         if drop_outlets:
             if 'gate_id' in df.columns:
-                outlet_user_gate = df.user_id.isin([4, 51, 52]) | df.gate_id.isin([0, 16])
-                self.comment.update(drop_users='4,51,52', drop_gates='0,16')
+                outlet_user_gate = df.user_id.isin([4, 51]) | df.gate_id.isin([0, 16])
+                self.comment.update(drop_users='4,51', drop_gates='0,16')
             else:
-                outlet_user_gate = df.user_id.isin([4, 51, 52])
-                self.comment.update(drop_users='4,51,52')
+                outlet_user_gate = df.user_id.isin([4, 51])
+                self.comment.update(drop_users='4,51')
             outlet_index = df[outlet_user_gate].index
             X_train = X_train[~X_train.index.isin(outlet_index)]
             X_valid = X_valid[~X_valid.index.isin(outlet_index)]
@@ -738,6 +764,8 @@ class DataTransform:
 
 
 if __name__ == "__main__":
+    # тут разные опыты с классом...
+
     cat_columns = ['gate_id', 'weekday', 'hour']
 
     file_dir = Path(__file__).parent
@@ -755,11 +783,4 @@ if __name__ == "__main__":
     all_df = pd.concat([train_df, test_df])
     # print(all_df.info())
 
-    test_size = 0.2
-    SEED = 17
-
-    X_train, X_valid, y_train, y_valid = data_cls.train_valid_split(train_df,
-                                                                    test_size=test_size,
-                                                                    SEED=SEED,
-                                                                    drop_outlets=True)
-    print(data_cls.comment)
+    print(len(data_cls.gates_mask), len(data_cls.gates_M_V2))

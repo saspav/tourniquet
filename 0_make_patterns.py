@@ -3,14 +3,10 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from datetime import date, datetime, timedelta
 from tqdm import tqdm
 from collections import Counter
 
 from data_process_tourniquet import DataTransform
-
-from df_addons import memory_compression
-from print_time import print_time, print_msg
 
 PREDICTIONS_DIR = Path(r'D:\python-txt\tourniquet\predictions')
 
@@ -74,7 +70,7 @@ print(*gates_times[-3:], sep='\n')
 # res_gate = [*map(lambda x: tuple(x[1][:6]), result_gates)]
 # получение из последовательность турникетов шаблонов длиной от 3х до 6-ти турникетов
 
-use_thresholds = False  # использовать ограничения по кол-ву турникетов
+use_thresholds = False  # использовать ограничения по кол-ву последовательных турникетов
 
 res_gate = []
 for user_gates in result_gates:
@@ -87,7 +83,7 @@ for user_gates in result_gates:
         res_gate.extend([*zip(*[gates[i:] for i in range(len_mask)])])
 print()
 print(*res_gate[-3:], sep='\n')
-print(len(res_gate))
+print('Количество комбинаций в шаблонах:', len(res_gate))
 # print()
 # print(*sorted(res_gate)[-3:], sep='\n')
 # print()
